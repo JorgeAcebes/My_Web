@@ -17,6 +17,9 @@
     };
 
     const render = () => {
+        if (!window.location.pathname.endsWith('Renfe')){
+                window.history.pushState({}, '', 'Renfe');
+        }
         UI.view.innerHTML = `
             <h2 style="text-align: center; font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1.1rem;">Cercanías</h2>
             <div class="app-container" style="max-width: 400px; margin: 0 auto;">
