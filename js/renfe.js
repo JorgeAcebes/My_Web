@@ -17,6 +17,11 @@
     };
 
     const render = () => {
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/Renfe')) {
+            const newPath = currentPath.replace(/\/$/, "") + "/Renfe";
+            window.history.pushState({ view: 'renfe' }, '', newPath);
+        }
         if (!window.location.pathname.endsWith('Renfe')){
                 window.history.pushState({}, '', 'Renfe');
         }
