@@ -1,6 +1,5 @@
 const init = () => {
     const params = new URLSearchParams(window.location.search);
-    // Verificación más robusta: si hay CUALQUIER parámetro, intentamos renderizar la tarjeta
     if (params.toString().length > 0) {
         renderContactCard(Object.fromEntries(params));
     } else {
@@ -9,7 +8,7 @@ const init = () => {
 };
 
 const generateQRCore = async () => {
-    const canvas = document.getElementById('qrCanvas');
+    const canvas = document.getElementById('qr_generatorCanvas');
     if (!canvas || typeof QRCode === 'undefined') return;
 
     // Aseguramos la barra final para evitar redirecciones de GH Pages
@@ -30,7 +29,7 @@ const generateQRCore = async () => {
         width: 800,
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' },
-        errorCorrectionLevel: 'M' // 'M' es suficiente y reduce la densidad del QR
+        errorCorrectionLevel: 'M' 
     });
     currentQRDataURL = canvas.toDataURL();
 };
