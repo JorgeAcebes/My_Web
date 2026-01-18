@@ -12,15 +12,24 @@
     };
 
     let state = JSON.parse(localStorage.getItem(storageKey)) || {
-        title: 'MI CONTACTO', fullName: '', email: '', phone: '', phrase1: '', phrase2: ''
+        title: 'Mi Contacto', fullName: '', email: '', phone: '', phrase1: '', phrase2: ''
     };
 
     let currentQRDataURL = null;
 
     const init = (view) => {
         const params = new URLSearchParams(window.location.search);
-        if (params.toString().length > 0) {
-            renderContactCard(view, Object.fromEntries(params));
+        const encodedData = params.get('v'); // 'v' de virtual space / variable
+
+        if (encodedData) {
+            try {
+                // Decodificación del "espacio virtual"
+                const decodedData = JSON.parse(atob(encodedData));
+                renderContactCard(view, decodedData);
+            } catch (e) {
+                console.error("Error decodificando el espacio virtual", e);
+                renderGenerator(view);
+            }
         } else {
             renderGenerator(view);
         }
@@ -79,9 +88,7 @@
     };
 
     const renderContactCard = (view, data) => {
-        // Obtenemos la URL base sin parámetros para el botón de retorno
         const cleanUrl = window.location.href.split('?')[0];
-        
         view.innerHTML = `
             <div class="qr-app" style="padding-top:2rem">
                 <div class="app-container" style="text-align:left; border-width:2px;">
@@ -105,7 +112,7 @@
         
         get('btn-qr-generate-now').onclick = async () => {
             state = {
-                title: get('in-qr-title').value.toUpperCase() || 'CONTACTO',
+                title: get('in-qr-title').value || 'Contacto', // Eliminado .toUpperCase()
                 fullName: get('in-qr-name').value,
                 email: get('in-qr-email').value,
                 phone: get('in-qr-phone').value,
@@ -140,21 +147,17 @@
         const canvas = document.getElementById('qrCanvas');
         if (!canvas || typeof QRCode === 'undefined') return;
 
-        // Definimos la base como la URL actual ignorando la query string previa
         const baseUrl = window.location.href.split('?')[0];
-        const cleanParams = new URLSearchParams();
         
-        Object.entries(state).forEach(([key, val]) => { 
-            if (val) cleanParams.append(key, val); 
-        });
-
-        const scanUrl = `${baseUrl}?${cleanParams.toString()}`;
+        // Empaquetado de datos en un string Base64 para crear el "espacio virtual"
+        const dataPayload = btoa(JSON.stringify(state));
+        const scanUrl = `${baseUrl}?v=${dataPayload}`;
 
         await QRCode.toCanvas(canvas, scanUrl, {
             width: 800,
             margin: 2,
             color: { dark: '#000000', light: '#ffffff' },
-            errorCorrectionLevel: 'M'
+            errorCorrectionLevel: 'M' // Nivel medio para balancear robustez y densidad
         });
         currentQRDataURL = canvas.toDataURL();
     };
@@ -181,4 +184,4 @@
     };
 
     start();
-})();s
+})();
