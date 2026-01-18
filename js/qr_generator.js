@@ -2,11 +2,10 @@
     const UI_ID = 'view-qr_generator';
     const storageKey = 'qr_rigorous_data_v4';
 
-    // Función de inicialización con reintento para evitar la condición de carrera
     const start = () => {
         const container = document.getElementById(UI_ID);
         if (!container) {
-            setTimeout(start, 50); // Reintento rápido si el DOM no está listo
+            setTimeout(start, 50);
             return;
         }
         init(container);
@@ -80,6 +79,9 @@
     };
 
     const renderContactCard = (view, data) => {
+        // Obtenemos la URL base sin parámetros para el botón de retorno
+        const cleanUrl = window.location.href.split('?')[0];
+        
         view.innerHTML = `
             <div class="qr-app" style="padding-top:2rem">
                 <div class="app-container" style="text-align:left; border-width:2px;">
@@ -94,7 +96,7 @@
                     ${data.phrase1 ? `<div style="padding:15px; background:#f9f9f9; border-left:2px solid #000; margin-bottom:10px; font-size:0.85rem;">${data.phrase1}</div>` : ''}
                     ${data.phrase2 ? `<div style="padding:15px; background:#f9f9f9; border-left:2px solid #000; font-size:0.85rem; opacity:0.6;">${data.phrase2}</div>` : ''}
                 </div>
-                <button class="btn-black" onclick="window.location.href=window.location.pathname" style="margin-top:2rem;">CREAR MI PROPIO QR</button>
+                <button class="btn-black" onclick="window.location.href='${cleanUrl}'" style="margin-top:2rem;">CREAR MI PROPIO QR</button>
             </div>`;
     };
 
@@ -125,7 +127,10 @@
 
         get('btn-qr-wall-modal').onclick = () => get('modal-wall-qr').style.display = 'flex';
         get('btn-wall-close').onclick = () => get('modal-wall-qr').style.display = 'none';
-        get('btn-qr-reset').onclick = () => renderGenerator(view);
+        get('btn-qr-reset').onclick = () => {
+            localStorage.removeItem(storageKey);
+            renderGenerator(view);
+        };
         
         get('btn-wall-mobile').onclick = () => processQRWall('mobile');
         get('btn-wall-tablet').onclick = () => processQRWall('tablet');
@@ -135,9 +140,13 @@
         const canvas = document.getElementById('qrCanvas');
         if (!canvas || typeof QRCode === 'undefined') return;
 
-        const baseUrl = `${window.location.origin}${window.location.pathname}`;
+        // Definimos la base como la URL actual ignorando la query string previa
+        const baseUrl = window.location.href.split('?')[0];
         const cleanParams = new URLSearchParams();
-        Object.entries(state).forEach(([key, val]) => { if (val) cleanParams.append(key, val); });
+        
+        Object.entries(state).forEach(([key, val]) => { 
+            if (val) cleanParams.append(key, val); 
+        });
 
         const scanUrl = `${baseUrl}?${cleanParams.toString()}`;
 
@@ -172,4 +181,4 @@
     };
 
     start();
-})();
+})();s
