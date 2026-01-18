@@ -11,6 +11,7 @@
         init(container);
     };
 
+    // Estado inicial sin forzar mayúsculas
     let state = JSON.parse(localStorage.getItem(storageKey)) || {
         title: 'Mi Contacto', fullName: '', email: '', phone: '', phrase1: '', phrase2: ''
     };
@@ -19,15 +20,15 @@
 
     const init = (view) => {
         const params = new URLSearchParams(window.location.search);
-        const encodedData = params.get('v'); // 'v' de virtual space / variable
+        const encodedData = params.get('v'); 
 
         if (encodedData) {
             try {
-                // Decodificación del "espacio virtual"
-                const decodedData = JSON.parse(atob(encodedData));
+                // Decodificación robusta para UTF-8 (acentos y caracteres especiales)
+                const decodedData = JSON.parse(decodeURIComponent(escape(atob(encodedData))));
                 renderContactCard(view, decodedData);
             } catch (e) {
-                console.error("Error decodificando el espacio virtual", e);
+                console.error("Error en la lectura del espacio virtual. Redirigiendo al generador.");
                 renderGenerator(view);
             }
         } else {
@@ -88,12 +89,14 @@
     };
 
     const renderContactCard = (view, data) => {
+        // Obtenemos la URL limpia para el botón de retorno
         const cleanUrl = window.location.href.split('?')[0];
+        
         view.innerHTML = `
             <div class="qr-app" style="padding-top:2rem">
                 <div class="app-container" style="text-align:left; border-width:2px;">
-                    <h2 style="font-weight:700; font-size:1.1rem; margin-bottom:1.5rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #000; padding-bottom:10px;">
-                        ${data.title || 'CONTACTO'}
+                    <h2 style="font-weight:700; font-size:1.1rem; margin-bottom:1.5rem; border-bottom:1px solid #000; padding-bottom:10px;">
+                        ${data.title || 'Contacto'}
                     </h2>
                     <p style="margin-bottom:1.5rem; font-size:1rem; font-weight:400;">${data.fullName || ''}</p>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:2rem; font-size:0.8rem;">
@@ -112,7 +115,7 @@
         
         get('btn-qr-generate-now').onclick = async () => {
             state = {
-                title: get('in-qr-title').value || 'Contacto', // Eliminado .toUpperCase()
+                title: get('in-qr-title').value, 
                 fullName: get('in-qr-name').value,
                 email: get('in-qr-email').value,
                 phone: get('in-qr-phone').value,
@@ -136,7 +139,8 @@
         get('btn-wall-close').onclick = () => get('modal-wall-qr').style.display = 'none';
         get('btn-qr-reset').onclick = () => {
             localStorage.removeItem(storageKey);
-            renderGenerator(view);
+            const cleanUrl = window.location.href.split('?')[0];
+            window.location.href = cleanUrl;
         };
         
         get('btn-wall-mobile').onclick = () => processQRWall('mobile');
@@ -149,15 +153,15 @@
 
         const baseUrl = window.location.href.split('?')[0];
         
-        // Empaquetado de datos en un string Base64 para crear el "espacio virtual"
-        const dataPayload = btoa(JSON.stringify(state));
+        // Codificación segura para UTF-8 en Base64
+        const dataPayload = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
         const scanUrl = `${baseUrl}?v=${dataPayload}`;
 
         await QRCode.toCanvas(canvas, scanUrl, {
             width: 800,
             margin: 2,
             color: { dark: '#000000', light: '#ffffff' },
-            errorCorrectionLevel: 'M' // Nivel medio para balancear robustez y densidad
+            errorCorrectionLevel: 'M'
         });
         currentQRDataURL = canvas.toDataURL();
     };
