@@ -108,7 +108,7 @@
                         </div>
                         <div class="input-group">
                             <label>Mensaje adicional</label>
-                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Si encuentras este móvil, por favor contacta conmigo...">${escapeHtml(state.notes)}</textarea>
+                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Si encuentras este dispositivo, por favor contacta conmigo...">${escapeHtml(state.notes)}</textarea>
                         </div>
                         <button class="btn-black" id="btn-generate-qr">GENERAR QR</button>
                         <div class="error-msg" id="error-msg"></div>
