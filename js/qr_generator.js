@@ -100,7 +100,7 @@
                         </div>
                         <div class="input-group">
                             <label>Correo Electrónico</label>
-                            <input type="email" id="in-email" class="input-minimal" value="${escapeHtml(state.email)}>
+                            <input type="email" id="in-email" class="input-minimal" value="${escapeHtml(state.email)}">
                         </div>
                         <div class="input-group">
                             <label>Dirección</label>
