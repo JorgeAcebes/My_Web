@@ -6,10 +6,8 @@
     // Estado de la aplicación
     const state = {
         fullName: '',
-        org: '',
         email: '',
         phone: '',
-        website: '',
         address: '',
         notes: ''
     };
@@ -58,14 +56,11 @@
         }
     };
 
-    // Escapar caracteres especiales para vCard
-    const escapeVCardValue = (value) => {
-        if (!value) return '';
-        return value
-            .replace(/\\/g, '\\\\')
-            .replace(/;/g, '\\;')
-            .replace(/,/g, '\\,')
-            .replace(/\n/g, '\\n');
+    // Escapar para HTML
+    const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     };
 
     const renderGenerator = (view) => {
@@ -92,43 +87,35 @@
             </style>
 
             <div class="qr-app">
-                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">Generador QR</h2>
+                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">QR de Emergencia - Móvil Perdido</h2>
                 <div class="app-container">
                     <div id="qr-form-section">
                         <div class="input-group">
-                            <label>Nombre Completo *</label>
-                            <input type="text" id="in-fullName" class="input-minimal" value="${escapeVCardValue(state.fullName)}" placeholder="Nombre Apellido1 Apellido 2">
+                            <label>Tu Nombre Completo *</label>
+                            <input type="text" id="in-fullName" class="input-minimal" value="${escapeHtml(state.fullName)}" placeholder="Juan Pérez García">
                         </div>
                         <div class="input-group">
-                            <label>Organización / Empresa</label>
-                            <input type="text" id="in-org" class="input-minimal" value="${escapeVCardValue(state.org)}" placeholder="Mi Empresa S.L.">
+                            <label>Teléfono de Emergencia *</label>
+                            <input type="tel" id="in-phone" class="input-minimal" value="${escapeHtml(state.phone)}" placeholder="+34 600 123 456">
                         </div>
                         <div class="input-group">
                             <label>Correo Electrónico</label>
-                            <input type="email" id="in-email" class="input-minimal" value="${escapeVCardValue(state.email)}" placeholder="contacto@ejemplo.com">
-                        </div>
-                        <div class="input-group">
-                            <label>Teléfono</label>
-                            <input type="tel" id="in-phone" class="input-minimal" value="${escapeVCardValue(state.phone)}" placeholder="+34 600 000 000">
-                        </div>
-                        <div class="input-group">
-                            <label>Sitio Web</label>
-                            <input type="url" id="in-website" class="input-minimal" value="${escapeVCardValue(state.website)}" placeholder="https://miwebsite.com">
+                            <input type="email" id="in-email" class="input-minimal" value="${escapeHtml(state.email)}" placeholder="contacto@ejemplo.com">
                         </div>
                         <div class="input-group">
                             <label>Dirección</label>
-                            <input type="text" id="in-address" class="input-minimal" value="${escapeVCardValue(state.address)}" placeholder="Calle Principal 123, Madrid">
+                            <input type="text" id="in-address" class="input-minimal" value="${escapeHtml(state.address)}" placeholder="Calle Principal 123, Madrid">
                         </div>
                         <div class="input-group">
-                            <label>Notas adicionales</label>
-                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Información adicional...">${escapeVCardValue(state.notes)}</textarea>
+                            <label>Mensaje adicional</label>
+                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Si encuentras este móvil, por favor contacta conmigo...">${escapeHtml(state.notes)}</textarea>
                         </div>
                         <button class="btn-black" id="btn-generate-qr">GENERAR QR</button>
                         <div class="error-msg" id="error-msg"></div>
                         
                         <div class="info-box">
-                            <strong>✨ Ventaja:</strong><br>
-                            Al escanear el QR, el móvil detectará automáticamente los datos de contacto y te permitirá guardarlo directamente en tu agenda.
+                            <strong>📱 ¿Para qué sirve esto?</strong><br>
+                            Si pierdes tu móvil, quien lo encuentre puede escanear el QR de tu pantalla de bloqueo y contactar contigo automáticamente.
                         </div>
                     </div>
 
@@ -149,7 +136,7 @@
                     <div class="modal-content">
                         <h3 style="font-weight:300; letter-spacing:2px; margin-bottom:2rem;">TIPO DE DISPOSITIVO</h3>
                         <button class="btn-black" id="btn-wall-mobile" style="margin-bottom:10px;">MÓVIL (9:16)</button>
-                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET</button>
+                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET (iPad Pro)</button>
                         <button class="btn-outline" id="btn-wall-close" style="width:100%; margin-top:20px;">CANCELAR</button>
                     </div>
                 </div>
@@ -164,10 +151,8 @@
         // Recoger datos del formulario
         const collectFormData = () => {
             state.fullName = get('in-fullName').value.trim();
-            state.org = get('in-org').value.trim();
             state.email = get('in-email').value.trim();
             state.phone = get('in-phone').value.trim();
-            state.website = get('in-website').value.trim();
             state.address = get('in-address').value.trim();
             state.notes = get('in-notes').value.trim();
         };
@@ -189,24 +174,36 @@
             }
         };
 
-        // Generar vCard con codificación UTF-8
+        // Generar vCard correcto
         const generateVCard = () => {
             const nameParts = state.fullName.split(' ');
             const firstName = nameParts[0] || '';
             const lastName = nameParts.slice(1).join(' ') || '';
 
+            // Crear vCard simple sin escapar caracteres especiales
             let vcard = 'BEGIN:VCARD\n';
             vcard += 'VERSION:3.0\n';
-            vcard += `CHARSET:UTF-8\n`;
-            vcard += `FN:${escapeVCardValue(state.fullName)}\n`;
-            vcard += `N:${escapeVCardValue(lastName)};${escapeVCardValue(firstName)};;;\n`;
+            vcard += 'FN;CHARSET=UTF-8:' + state.fullName + '\n';
+            vcard += 'N;CHARSET=UTF-8:' + lastName + ';' + firstName + ';;;\n';
             
-            if (state.org) vcard += `ORG:${escapeVCardValue(state.org)}\n`;
-            if (state.email) vcard += `EMAIL;TYPE=INTERNET:${escapeVCardValue(state.email)}\n`;
-            if (state.phone) vcard += `TEL;TYPE=CELL:${escapeVCardValue(state.phone)}\n`;
-            if (state.website) vcard += `URL:${escapeVCardValue(state.website)}\n`;
-            if (state.address) vcard += `ADR;TYPE=WORK:;;${escapeVCardValue(state.address)};;;;\n`;
-            if (state.notes) vcard += `NOTE:${escapeVCardValue(state.notes)}\n`;
+            // Teléfono de emergencia - sin escapar
+            if (state.phone) {
+                vcard += 'TEL;TYPE=CELL,VOICE:' + state.phone + '\n';
+            }
+            
+            if (state.email) {
+                vcard += 'EMAIL;TYPE=INTERNET:' + state.email + '\n';
+            }
+            
+            if (state.address) {
+                vcard += 'ADR;CHARSET=UTF-8;TYPE=HOME:;;' + state.address + ';;;;\n';
+            }
+            
+            if (state.notes) {
+                vcard += 'NOTE;CHARSET=UTF-8:Teléfono de emergencia - ' + state.notes + '\n';
+            } else {
+                vcard += 'NOTE;CHARSET=UTF-8:Teléfono de emergencia - Si encuentras este móvil, por favor contacta conmigo\n';
+            }
             
             vcard += 'END:VCARD';
             return vcard;
@@ -216,9 +213,14 @@
         const generateQR = () => {
             collectFormData();
 
-            // Validar nombre
+            // Validar campos obligatorios
             if (!state.fullName) {
-                showError('Por favor, introduce al menos tu nombre completo');
+                showError('Por favor, introduce tu nombre completo');
+                return false;
+            }
+
+            if (!state.phone) {
+                showError('Por favor, introduce un teléfono de emergencia');
                 return false;
             }
 
@@ -235,12 +237,12 @@
                 canvas.id = 'qr-canvas';
                 container.appendChild(canvas);
 
-                // Generar QR con QRious
+                // Generar QR con QRious usando nivel H (alta corrección de errores)
                 qrInstance = new QRious({
                     element: canvas,
                     value: vcard,
                     size: 300,
-                    level: 'M',
+                    level: 'H',
                     foreground: '#000000',
                     background: '#ffffff'
                 });
@@ -280,7 +282,7 @@
             try {
                 const url = canvas.toDataURL('image/png');
                 const a = document.createElement('a');
-                a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
+                a.download = 'QR_Emergencia_' + state.fullName.replace(/\s/g, '_') + '.png';
                 a.href = url;
                 a.click();
             } catch (error) {
@@ -321,7 +323,7 @@
                 // Descargar
                 const url = wallCanvas.toDataURL('image/png');
                 const a = document.createElement('a');
-                a.download = `Wallpaper_QR_${type.toUpperCase()}.png`;
+                a.download = 'Wallpaper_QR_Emergencia_' + type.toUpperCase() + '.png';
                 a.href = url;
                 a.click();
 
