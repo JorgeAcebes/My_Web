@@ -23,9 +23,6 @@
         fullName: '', org: '', email: '', phone: '', website: '', address: '', notes: ''
     };
 
-    let currentQR = null;
-    let currentVCard = '';
-
     const init = (view) => {
         renderGenerator(view);
     };
@@ -39,8 +36,9 @@
                 .input-group label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
                 .input-minimal { width: 100%; padding: 12px; border: 1px solid #000; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; }
                 .qr-result-area { display: none; margin-top: 2rem; border-top: 1px dashed #000; padding-top: 2rem; }
-                #qrcode { display: flex; justify-content: center; margin-bottom: 1.5rem; min-height: 300px; }
-                #qrcode canvas, #qrcode img { border: 1px solid #eee !important; max-width: 100%; height: auto; }
+                #qrcode { display: flex; justify-content: center; margin-bottom: 1.5rem; min-height: 320px; align-items: center; }
+                #qrcode canvas { border: 1px solid #eee !important; }
+                #qrcode img { max-width: 100% !important; height: auto !important; }
                 .btn-black { background: #000; color: #fff; border: none; padding: 15px; cursor: pointer; font-weight: 700; letter-spacing: 1px; width: 100%; transition: opacity 0.3s; }
                 .btn-black:hover { opacity: 0.8; }
                 .btn-outline { background: #fff; color: #000; border: 1px solid #000; padding: 15px; cursor: pointer; font-weight: 700; flex: 1; transition: background 0.3s; }
@@ -137,34 +135,71 @@
             }
 
             localStorage.setItem(storageKey, JSON.stringify(state));
-            generateQRCode();
-            get('qr-result-display').style.display = 'block';
-            get('qr-result-display').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        };
-
-        get('btn-download-qr').onclick = () => {
-            const canvas = document.querySelector('#qrcode canvas');
-            if (canvas) {
-                const a = document.createElement('a');
-                a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
-                a.href = canvas.toDataURL();
-                a.click();
+            
+            try {
+                generateQRCode();
+                get('qr-result-display').style.display = 'block';
+                setTimeout(() => {
+                    get('qr-result-display').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } catch (error) {
+                console.error('Error completo:', error);
+                alert('Error al generar el QR: ' + error.message);
             }
         };
 
-        get('btn-wallpaper').onclick = () => get('modal-wallpaper').style.display = 'flex';
-        get('btn-wall-close').onclick = () => get('modal-wallpaper').style.display = 'none';
+        const downloadBtn = get('btn-download-qr');
+        if (downloadBtn) {
+            downloadBtn.onclick = () => {
+                const canvas = document.querySelector('#qrcode canvas');
+                const img = document.querySelector('#qrcode img');
+                
+                if (canvas) {
+                    const a = document.createElement('a');
+                    a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
+                    a.href = canvas.toDataURL();
+                    a.click();
+                } else if (img) {
+                    const a = document.createElement('a');
+                    a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
+                    a.href = img.src;
+                    a.click();
+                } else {
+                    alert('No se pudo encontrar el código QR generado');
+                }
+            };
+        }
+
+        const wallBtn = get('btn-wallpaper');
+        if (wallBtn) {
+            wallBtn.onclick = () => get('modal-wallpaper').style.display = 'flex';
+        }
+
+        const closeBtn = get('btn-wall-close');
+        if (closeBtn) {
+            closeBtn.onclick = () => get('modal-wallpaper').style.display = 'none';
+        }
         
-        get('btn-wall-mobile').onclick = () => generateWallpaper('mobile');
-        get('btn-wall-tablet').onclick = () => generateWallpaper('tablet');
+        const mobileBtn = get('btn-wall-mobile');
+        if (mobileBtn) {
+            mobileBtn.onclick = () => generateWallpaper('mobile');
+        }
 
-        get('btn-reset').onclick = () => {
-            if (confirm('¿Seguro que quieres borrar todos los datos?')) {
-                localStorage.removeItem(storageKey);
-                state = { fullName: '', org: '', email: '', phone: '', website: '', address: '', notes: '' };
-                renderGenerator(view);
-            }
-        };
+        const tabletBtn = get('btn-wall-tablet');
+        if (tabletBtn) {
+            tabletBtn.onclick = () => generateWallpaper('tablet');
+        }
+
+        const resetBtn = get('btn-reset');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                if (confirm('¿Seguro que quieres borrar todos los datos?')) {
+                    localStorage.removeItem(storageKey);
+                    state = { fullName: '', org: '', email: '', phone: '', website: '', address: '', notes: '' };
+                    renderGenerator(view);
+                }
+            };
+        }
     };
 
     const generateVCard = () => {
@@ -189,33 +224,36 @@
 
     const generateQRCode = () => {
         if (typeof QRCode === 'undefined') {
-            alert('Error: La librería QRCode no está cargada. Por favor, recarga la página.');
-            return;
+            throw new Error('La librería QRCode no está cargada');
         }
 
-        currentVCard = generateVCard();
+        const vcard = generateVCard();
+        console.log('vCard generado:', vcard);
         
         const qrcodeDiv = document.getElementById('qrcode');
+        if (!qrcodeDiv) {
+            throw new Error('No se encontró el contenedor #qrcode');
+        }
+        
         qrcodeDiv.innerHTML = '';
         
-        try {
-            currentQR = new QRCode(qrcodeDiv, {
-                text: currentVCard,
-                width: 300,
-                height: 300,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        } catch (error) {
-            console.error('Error generando QR:', error);
-            alert('Error al generar el código QR. Por favor, intenta de nuevo.');
-        }
+        new QRCode(qrcodeDiv, {
+            text: vcard,
+            width: 300,
+            height: 300,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        
+        console.log('QR generado exitosamente');
     };
 
     const generateWallpaper = (type) => {
         const canvas = document.querySelector('#qrcode canvas');
-        if (!canvas) {
+        const img = document.querySelector('#qrcode img');
+        
+        if (!canvas && !img) {
             alert('Primero debes generar un código QR');
             return;
         }
@@ -233,14 +271,28 @@
         const x = (dims.w - qrSize) / 2;
         const y = (dims.h - qrSize) / 2;
         
-        ctx.drawImage(canvas, x, y, qrSize, qrSize);
+        if (canvas) {
+            ctx.drawImage(canvas, x, y, qrSize, qrSize);
+            downloadWallpaper(wallCanvas, type);
+        } else if (img && img.complete) {
+            ctx.drawImage(img, x, y, qrSize, qrSize);
+            downloadWallpaper(wallCanvas, type);
+        } else if (img) {
+            img.onload = () => {
+                ctx.drawImage(img, x, y, qrSize, qrSize);
+                downloadWallpaper(wallCanvas, type);
+            };
+        }
+    };
 
+    const downloadWallpaper = (canvas, type) => {
         const a = document.createElement('a');
         a.download = `Wallpaper_QR_${type.toUpperCase()}.png`;
-        a.href = wallCanvas.toDataURL();
+        a.href = canvas.toDataURL();
         a.click();
-
-        document.getElementById('modal-wallpaper').style.display = 'none';
+        
+        const modal = document.getElementById('modal-wallpaper');
+        if (modal) modal.style.display = 'none';
     };
 
     start();
