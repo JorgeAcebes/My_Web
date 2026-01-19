@@ -1,6 +1,18 @@
 (function() {
     const UI_ID = 'view-qr_generator';
-    const storageKey = 'qr_vcard_data_v1';
+    const STORAGE_KEY = 'qr_vcard_data_v1';
+    let qrInstance = null;
+
+    // Estado de la aplicación
+    const state = {
+        fullName: '',
+        org: '',
+        email: '',
+        phone: '',
+        website: '',
+        address: '',
+        notes: ''
+    };
 
     const start = () => {
         const container = document.getElementById(UI_ID);
@@ -9,9 +21,9 @@
             return;
         }
         
-        // Verificar que QRCode esté disponible
-        if (typeof QRCode === 'undefined') {
-            console.error('QRCode library not loaded yet, retrying...');
+        // Verificar que QRious esté disponible
+        if (typeof QRious === 'undefined') {
+            console.error('QRious library not loaded yet, retrying...');
             setTimeout(start, 100);
             return;
         }
@@ -19,12 +31,41 @@
         init(container);
     };
 
-    let state = JSON.parse(localStorage.getItem(storageKey)) || {
-        fullName: '', org: '', email: '', phone: '', website: '', address: '', notes: ''
+    const init = (view) => {
+        loadFromStorage();
+        renderGenerator(view);
     };
 
-    const init = (view) => {
-        renderGenerator(view);
+    // Cargar datos guardados
+    const loadFromStorage = () => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                Object.assign(state, data);
+            }
+        } catch (e) {
+            console.error('Error cargando datos:', e);
+        }
+    };
+
+    // Guardar en localStorage
+    const saveToStorage = () => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+            console.error('Error guardando datos:', e);
+        }
+    };
+
+    // Escapar caracteres especiales para vCard
+    const escapeVCardValue = (value) => {
+        if (!value) return '';
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\n/g, '\\n');
     };
 
     const renderGenerator = (view) => {
@@ -38,50 +79,52 @@
                 .qr-result-area { display: none; margin-top: 2rem; border-top: 1px dashed #000; padding-top: 2rem; }
                 #qrcode { display: flex; justify-content: center; margin-bottom: 1.5rem; min-height: 320px; align-items: center; }
                 #qrcode canvas { border: 1px solid #eee !important; }
-                #qrcode img { max-width: 100% !important; height: auto !important; }
-                .btn-black { background: #000; color: #fff; border: none; padding: 15px; cursor: pointer; font-weight: 700; letter-spacing: 1px; width: 100%; transition: opacity 0.3s; }
+                .btn-black { background: #000; color: #fff; border: none; padding: 15px; cursor: pointer; font-weight: 700; letter-spacing: 1px; width: 100%; transition: opacity 0.3s; font-family: inherit; font-size: 0.9rem; }
                 .btn-black:hover { opacity: 0.8; }
-                .btn-outline { background: #fff; color: #000; border: 1px solid #000; padding: 15px; cursor: pointer; font-weight: 700; flex: 1; transition: background 0.3s; }
+                .btn-outline { background: #fff; color: #000; border: 1px solid #000; padding: 15px; cursor: pointer; font-weight: 700; flex: 1; transition: background 0.3s; font-family: inherit; font-size: 0.9rem; }
                 .btn-outline:hover { background: #f0f0f0; }
                 .btn-group { display: flex; gap: 10px; margin-top: 10px; }
                 .info-box { background: #f9f9f9; border-left: 3px solid #000; padding: 15px; margin-top: 1rem; text-align: left; font-size: 0.85rem; }
                 .modal-qr { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 3000; align-items: center; justify-content: center; }
-                .reset-btn { background: none; border: none; text-decoration: underline; font-size: 0.7rem; opacity: 0.5; cursor: pointer; }
+                .modal-content { max-width: 350px; width: 90%; text-align: center; }
+                .reset-btn { background: none; border: none; text-decoration: underline; font-size: 0.7rem; opacity: 0.5; cursor: pointer; font-family: inherit; }
+                .error-msg { color: #d00; font-size: 0.85rem; margin-top: 10px; padding: 10px; background: #ffe6e6; border: 1px solid #ffcccc; display: none; }
             </style>
 
             <div class="qr-app">
-                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">Generador QR - Contacto Directo</h2>
+                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">Generador QR</h2>
                 <div class="app-container">
                     <div id="qr-form-section">
                         <div class="input-group">
                             <label>Nombre Completo *</label>
-                            <input type="text" id="in-fullName" class="input-minimal" value="${state.fullName}" placeholder="Juan Pérez García">
+                            <input type="text" id="in-fullName" class="input-minimal" value="${escapeVCardValue(state.fullName)}" placeholder="Nombre Apellido1 Apellido 2">
                         </div>
                         <div class="input-group">
                             <label>Organización / Empresa</label>
-                            <input type="text" id="in-org" class="input-minimal" value="${state.org}" placeholder="Mi Empresa S.L.">
+                            <input type="text" id="in-org" class="input-minimal" value="${escapeVCardValue(state.org)}" placeholder="Mi Empresa S.L.">
                         </div>
                         <div class="input-group">
                             <label>Correo Electrónico</label>
-                            <input type="email" id="in-email" class="input-minimal" value="${state.email}" placeholder="contacto@ejemplo.com">
+                            <input type="email" id="in-email" class="input-minimal" value="${escapeVCardValue(state.email)}" placeholder="contacto@ejemplo.com">
                         </div>
                         <div class="input-group">
                             <label>Teléfono</label>
-                            <input type="tel" id="in-phone" class="input-minimal" value="${state.phone}" placeholder="+34 600 123 456">
+                            <input type="tel" id="in-phone" class="input-minimal" value="${escapeVCardValue(state.phone)}" placeholder="+34 600 000 000">
                         </div>
                         <div class="input-group">
                             <label>Sitio Web</label>
-                            <input type="url" id="in-website" class="input-minimal" value="${state.website}" placeholder="https://miwebsite.com">
+                            <input type="url" id="in-website" class="input-minimal" value="${escapeVCardValue(state.website)}" placeholder="https://miwebsite.com">
                         </div>
                         <div class="input-group">
                             <label>Dirección</label>
-                            <input type="text" id="in-address" class="input-minimal" value="${state.address}" placeholder="Calle Principal 123, Madrid">
+                            <input type="text" id="in-address" class="input-minimal" value="${escapeVCardValue(state.address)}" placeholder="Calle Principal 123, Madrid">
                         </div>
                         <div class="input-group">
                             <label>Notas adicionales</label>
-                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Información adicional...">${state.notes}</textarea>
+                            <textarea id="in-notes" class="input-minimal" style="height:60px" placeholder="Información adicional...">${escapeVCardValue(state.notes)}</textarea>
                         </div>
                         <button class="btn-black" id="btn-generate-qr">GENERAR QR</button>
+                        <div class="error-msg" id="error-msg"></div>
                         
                         <div class="info-box">
                             <strong>✨ Ventaja:</strong><br>
@@ -103,10 +146,10 @@
                 </div>
 
                 <div id="modal-wallpaper" class="modal-qr">
-                    <div style="max-width:350px; width:90%; text-align:center;">
+                    <div class="modal-content">
                         <h3 style="font-weight:300; letter-spacing:2px; margin-bottom:2rem;">TIPO DE DISPOSITIVO</h3>
                         <button class="btn-black" id="btn-wall-mobile" style="margin-bottom:10px;">MÓVIL (9:16)</button>
-                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET (iPad Pro)</button>
+                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET</button>
                         <button class="btn-outline" id="btn-wall-close" style="width:100%; margin-top:20px;">CANCELAR</button>
                     </div>
                 </div>
@@ -118,181 +161,198 @@
     const attachEvents = (view) => {
         const get = (id) => document.getElementById(id);
 
-        get('btn-generate-qr').onclick = () => {
-            state = {
-                fullName: get('in-fullName').value.trim(),
-                org: get('in-org').value.trim(),
-                email: get('in-email').value.trim(),
-                phone: get('in-phone').value.trim(),
-                website: get('in-website').value.trim(),
-                address: get('in-address').value.trim(),
-                notes: get('in-notes').value.trim()
-            };
+        // Recoger datos del formulario
+        const collectFormData = () => {
+            state.fullName = get('in-fullName').value.trim();
+            state.org = get('in-org').value.trim();
+            state.email = get('in-email').value.trim();
+            state.phone = get('in-phone').value.trim();
+            state.website = get('in-website').value.trim();
+            state.address = get('in-address').value.trim();
+            state.notes = get('in-notes').value.trim();
+        };
 
-            if (!state.fullName) {
-                alert('Por favor, introduce al menos tu nombre completo');
-                return;
-            }
-
-            localStorage.setItem(storageKey, JSON.stringify(state));
-            
-            try {
-                generateQRCode();
-                get('qr-result-display').style.display = 'block';
-                setTimeout(() => {
-                    get('qr-result-display').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } catch (error) {
-                console.error('Error completo:', error);
-                alert('Error al generar el QR: ' + error.message);
+        // Mostrar error
+        const showError = (msg) => {
+            const errorDiv = get('error-msg');
+            if (errorDiv) {
+                errorDiv.textContent = msg;
+                errorDiv.style.display = 'block';
             }
         };
 
-        const downloadBtn = get('btn-download-qr');
-        if (downloadBtn) {
-            downloadBtn.onclick = () => {
-                const canvas = document.querySelector('#qrcode canvas');
-                const img = document.querySelector('#qrcode img');
+        // Ocultar error
+        const hideError = () => {
+            const errorDiv = get('error-msg');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+        };
+
+        // Generar vCard con codificación UTF-8
+        const generateVCard = () => {
+            const nameParts = state.fullName.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+
+            let vcard = 'BEGIN:VCARD\n';
+            vcard += 'VERSION:3.0\n';
+            vcard += `CHARSET:UTF-8\n`;
+            vcard += `FN:${escapeVCardValue(state.fullName)}\n`;
+            vcard += `N:${escapeVCardValue(lastName)};${escapeVCardValue(firstName)};;;\n`;
+            
+            if (state.org) vcard += `ORG:${escapeVCardValue(state.org)}\n`;
+            if (state.email) vcard += `EMAIL;TYPE=INTERNET:${escapeVCardValue(state.email)}\n`;
+            if (state.phone) vcard += `TEL;TYPE=CELL:${escapeVCardValue(state.phone)}\n`;
+            if (state.website) vcard += `URL:${escapeVCardValue(state.website)}\n`;
+            if (state.address) vcard += `ADR;TYPE=WORK:;;${escapeVCardValue(state.address)};;;;\n`;
+            if (state.notes) vcard += `NOTE:${escapeVCardValue(state.notes)}\n`;
+            
+            vcard += 'END:VCARD';
+            return vcard;
+        };
+
+        // Generar QR
+        const generateQR = () => {
+            collectFormData();
+
+            // Validar nombre
+            if (!state.fullName) {
+                showError('Por favor, introduce al menos tu nombre completo');
+                return false;
+            }
+
+            try {
+                const vcard = generateVCard();
+                console.log('vCard generado:', vcard);
+
+                // Limpiar contenedor
+                const container = get('qrcode');
+                container.innerHTML = '';
+
+                // Crear canvas para el QR
+                const canvas = document.createElement('canvas');
+                canvas.id = 'qr-canvas';
+                container.appendChild(canvas);
+
+                // Generar QR con QRious
+                qrInstance = new QRious({
+                    element: canvas,
+                    value: vcard,
+                    size: 300,
+                    level: 'M',
+                    foreground: '#000000',
+                    background: '#ffffff'
+                });
+
+                // Guardar datos
+                saveToStorage();
+
+                // Mostrar resultado
+                get('qr-result-display').style.display = 'block';
                 
-                if (canvas) {
-                    const a = document.createElement('a');
-                    a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
-                    a.href = canvas.toDataURL();
-                    a.click();
-                } else if (img) {
-                    const a = document.createElement('a');
-                    a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
-                    a.href = img.src;
-                    a.click();
-                } else {
-                    alert('No se pudo encontrar el código QR generado');
-                }
-            };
-        }
+                // Scroll suave
+                setTimeout(() => {
+                    get('qr-result-display').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'nearest' 
+                    });
+                }, 100);
 
-        const wallBtn = get('btn-wallpaper');
-        if (wallBtn) {
-            wallBtn.onclick = () => get('modal-wallpaper').style.display = 'flex';
-        }
+                hideError();
+                return true;
 
-        const closeBtn = get('btn-wall-close');
-        if (closeBtn) {
-            closeBtn.onclick = () => get('modal-wallpaper').style.display = 'none';
-        }
-        
-        const mobileBtn = get('btn-wall-mobile');
-        if (mobileBtn) {
-            mobileBtn.onclick = () => generateWallpaper('mobile');
-        }
+            } catch (error) {
+                console.error('Error generando QR:', error);
+                showError('Error al generar el QR: ' + error.message);
+                return false;
+            }
+        };
 
-        const tabletBtn = get('btn-wall-tablet');
-        if (tabletBtn) {
-            tabletBtn.onclick = () => generateWallpaper('tablet');
-        }
+        // Descargar QR
+        const downloadQR = () => {
+            const canvas = get('qr-canvas');
+            if (!canvas) {
+                showError('Primero debes generar un código QR');
+                return;
+            }
 
-        const resetBtn = get('btn-reset');
-        if (resetBtn) {
-            resetBtn.onclick = () => {
-                if (confirm('¿Seguro que quieres borrar todos los datos?')) {
-                    localStorage.removeItem(storageKey);
-                    state = { fullName: '', org: '', email: '', phone: '', website: '', address: '', notes: '' };
-                    renderGenerator(view);
-                }
-            };
-        }
-    };
+            try {
+                const url = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.download = `QR_Contacto_${state.fullName.replace(/\s/g, '_')}.png`;
+                a.href = url;
+                a.click();
+            } catch (error) {
+                showError('Error al descargar: ' + error.message);
+            }
+        };
 
-    const generateVCard = () => {
-        const nameParts = state.fullName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
+        // Generar wallpaper
+        const generateWallpaper = (type) => {
+            const sourceCanvas = get('qr-canvas');
+            if (!sourceCanvas) {
+                showError('Primero debes generar un código QR');
+                return;
+            }
 
-        let vcard = 'BEGIN:VCARD\n';
-        vcard += 'VERSION:3.0\n';
-        vcard += `FN:${state.fullName}\n`;
-        vcard += `N:${lastName};${firstName};;;\n`;
-        if (state.org) vcard += `ORG:${state.org}\n`;
-        if (state.email) vcard += `EMAIL;TYPE=INTERNET:${state.email}\n`;
-        if (state.phone) vcard += `TEL;TYPE=CELL:${state.phone}\n`;
-        if (state.website) vcard += `URL:${state.website}\n`;
-        if (state.address) vcard += `ADR;TYPE=WORK:;;${state.address};;;;\n`;
-        if (state.notes) vcard += `NOTE:${state.notes}\n`;
-        vcard += 'END:VCARD';
+            try {
+                const wallCanvas = document.createElement('canvas');
+                const dims = type === 'mobile' 
+                    ? { w: 1080, h: 1920 } 
+                    : { w: 2048, h: 2732 };
+                
+                wallCanvas.width = dims.w;
+                wallCanvas.height = dims.h;
+                
+                const ctx = wallCanvas.getContext('2d');
+                
+                // Fondo negro
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, dims.w, dims.h);
 
-        return vcard;
-    };
+                // Centrar QR
+                const qrSize = Math.min(dims.w, dims.h) * 0.65;
+                const x = (dims.w - qrSize) / 2;
+                const y = (dims.h - qrSize) / 2;
+                
+                ctx.drawImage(sourceCanvas, x, y, qrSize, qrSize);
 
-    const generateQRCode = () => {
-        if (typeof QRCode === 'undefined') {
-            throw new Error('La librería QRCode no está cargada');
-        }
+                // Descargar
+                const url = wallCanvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.download = `Wallpaper_QR_${type.toUpperCase()}.png`;
+                a.href = url;
+                a.click();
 
-        const vcard = generateVCard();
-        console.log('vCard generado:', vcard);
-        
-        const qrcodeDiv = document.getElementById('qrcode');
-        if (!qrcodeDiv) {
-            throw new Error('No se encontró el contenedor #qrcode');
-        }
-        
-        qrcodeDiv.innerHTML = '';
-        
-        new QRCode(qrcodeDiv, {
-            text: vcard,
-            width: 300,
-            height: 300,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-        });
-        
-        console.log('QR generado exitosamente');
-    };
+                // Cerrar modal
+                get('modal-wallpaper').style.display = 'none';
+            } catch (error) {
+                showError('Error al generar wallpaper: ' + error.message);
+            }
+        };
 
-    const generateWallpaper = (type) => {
-        const canvas = document.querySelector('#qrcode canvas');
-        const img = document.querySelector('#qrcode img');
-        
-        if (!canvas && !img) {
-            alert('Primero debes generar un código QR');
-            return;
-        }
+        // Resetear todo
+        const resetAll = () => {
+            if (confirm('¿Seguro que quieres borrar todos los datos?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                
+                // Limpiar estado
+                Object.keys(state).forEach(key => state[key] = '');
+                
+                // Re-renderizar
+                renderGenerator(view);
+            }
+        };
 
-        const wallCanvas = document.createElement('canvas');
-        const dims = type === 'mobile' ? { w: 1080, h: 1920 } : { w: 2048, h: 2732 };
-        wallCanvas.width = dims.w;
-        wallCanvas.height = dims.h;
-        
-        const ctx = wallCanvas.getContext('2d');
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, dims.w, dims.h);
-
-        const qrSize = Math.min(dims.w, dims.h) * 0.65;
-        const x = (dims.w - qrSize) / 2;
-        const y = (dims.h - qrSize) / 2;
-        
-        if (canvas) {
-            ctx.drawImage(canvas, x, y, qrSize, qrSize);
-            downloadWallpaper(wallCanvas, type);
-        } else if (img && img.complete) {
-            ctx.drawImage(img, x, y, qrSize, qrSize);
-            downloadWallpaper(wallCanvas, type);
-        } else if (img) {
-            img.onload = () => {
-                ctx.drawImage(img, x, y, qrSize, qrSize);
-                downloadWallpaper(wallCanvas, type);
-            };
-        }
-    };
-
-    const downloadWallpaper = (canvas, type) => {
-        const a = document.createElement('a');
-        a.download = `Wallpaper_QR_${type.toUpperCase()}.png`;
-        a.href = canvas.toDataURL();
-        a.click();
-        
-        const modal = document.getElementById('modal-wallpaper');
-        if (modal) modal.style.display = 'none';
+        // Event listeners
+        get('btn-generate-qr').onclick = generateQR;
+        get('btn-download-qr').onclick = downloadQR;
+        get('btn-wallpaper').onclick = () => get('modal-wallpaper').style.display = 'flex';
+        get('btn-wall-close').onclick = () => get('modal-wallpaper').style.display = 'none';
+        get('btn-wall-mobile').onclick = () => generateWallpaper('mobile');
+        get('btn-wall-tablet').onclick = () => generateWallpaper('tablet');
+        get('btn-reset').onclick = resetAll;
     };
 
     start();
