@@ -87,24 +87,24 @@
             </style>
 
             <div class="qr-app">
-                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">QR de Emergencia - Móvil Perdido</h2>
+                <h2 style="font-weight:300; letter-spacing:4px; margin-bottom:2rem; text-transform:uppercase; font-size:1rem;">QR Contacto Emergencia</h2>
                 <div class="app-container">
                     <div id="qr-form-section">
                         <div class="input-group">
                             <label>Tu Nombre Completo *</label>
-                            <input type="text" id="in-fullName" class="input-minimal" value="${escapeHtml(state.fullName)}" placeholder="Juan Pérez García">
+                            <input type="text" id="in-fullName" class="input-minimal" value="${escapeHtml(state.fullName)}">
                         </div>
                         <div class="input-group">
                             <label>Teléfono de Emergencia *</label>
-                            <input type="tel" id="in-phone" class="input-minimal" value="${escapeHtml(state.phone)}" placeholder="+34 600 123 456">
+                            <input type="tel" id="in-phone" class="input-minimal" value="${escapeHtml(state.phone)}">
                         </div>
                         <div class="input-group">
                             <label>Correo Electrónico</label>
-                            <input type="email" id="in-email" class="input-minimal" value="${escapeHtml(state.email)}" placeholder="contacto@ejemplo.com">
+                            <input type="email" id="in-email" class="input-minimal" value="${escapeHtml(state.email)}>
                         </div>
                         <div class="input-group">
                             <label>Dirección</label>
-                            <input type="text" id="in-address" class="input-minimal" value="${escapeHtml(state.address)}" placeholder="Calle Principal 123, Madrid">
+                            <input type="text" id="in-address" class="input-minimal" value="${escapeHtml(state.address)}">
                         </div>
                         <div class="input-group">
                             <label>Mensaje adicional</label>
@@ -112,11 +112,7 @@
                         </div>
                         <button class="btn-black" id="btn-generate-qr">GENERAR QR</button>
                         <div class="error-msg" id="error-msg"></div>
-                        
-                        <div class="info-box">
-                            <strong>📱 ¿Para qué sirve esto?</strong><br>
-                            Si pierdes tu móvil, quien lo encuentre puede escanear el QR de tu pantalla de bloqueo y contactar contigo automáticamente.
-                        </div>
+
                     </div>
 
                     <div id="qr-result-display" class="qr-result-area">
@@ -135,8 +131,8 @@
                 <div id="modal-wallpaper" class="modal-qr">
                     <div class="modal-content">
                         <h3 style="font-weight:300; letter-spacing:2px; margin-bottom:2rem;">TIPO DE DISPOSITIVO</h3>
-                        <button class="btn-black" id="btn-wall-mobile" style="margin-bottom:10px;">MÓVIL (9:16)</button>
-                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET (iPad Pro)</button>
+                        <button class="btn-black" id="btn-wall-mobile" style="margin-bottom:10px;">MÓVIL</button>
+                        <button class="btn-black" id="btn-wall-tablet" style="margin-bottom:10px;">TABLET</button>
                         <button class="btn-outline" id="btn-wall-close" style="width:100%; margin-top:20px;">CANCELAR</button>
                     </div>
                 </div>
@@ -145,16 +141,20 @@
         attachEvents(view);
     };
 
+    const removeAccents = (str) => {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    };
+
     const attachEvents = (view) => {
         const get = (id) => document.getElementById(id);
 
         // Recoger datos del formulario
         const collectFormData = () => {
-            state.fullName = get('in-fullName').value.trim();
+            state.fullName = removeAccents(get('in-fullName').value.trim());
             state.email = get('in-email').value.trim();
             state.phone = get('in-phone').value.trim();
-            state.address = get('in-address').value.trim();
-            state.notes = get('in-notes').value.trim();
+            state.address = removeAccents(get('in-address').value.trim());
+            state.notes = removeAccents(get('in-notes').value.trim());
         };
 
         // Mostrar error
@@ -180,13 +180,13 @@
             const firstName = nameParts[0] || '';
             const lastName = nameParts.slice(1).join(' ') || '';
 
-            // Crear vCard simple sin escapar caracteres especiales
+            // Crear vCard
             let vcard = 'BEGIN:VCARD\n';
             vcard += 'VERSION:3.0\n';
             vcard += 'FN;CHARSET=UTF-8:' + state.fullName + '\n';
             vcard += 'N;CHARSET=UTF-8:' + lastName + ';' + firstName + ';;;\n';
             
-            // Teléfono de emergencia - sin escapar
+            // Teléfono de emergencia
             if (state.phone) {
                 vcard += 'TEL;TYPE=CELL,VOICE:' + state.phone + '\n';
             }
@@ -200,9 +200,9 @@
             }
             
             if (state.notes) {
-                vcard += 'NOTE;CHARSET=UTF-8:Teléfono de emergencia - ' + state.notes + '\n';
+                vcard += 'NOTE;CHARSET=UTF-8:Contacto de emergencia - ' + state.notes + '\n';
             } else {
-                vcard += 'NOTE;CHARSET=UTF-8:Teléfono de emergencia - Si encuentras este móvil, por favor contacta conmigo\n';
+                vcard += 'NOTE;CHARSET=UTF-8:Contacto de emergencia - Si encuentras este dispositivo, por favor contacta conmigo\n';
             }
             
             vcard += 'END:VCARD';
@@ -237,12 +237,12 @@
                 canvas.id = 'qr-canvas';
                 container.appendChild(canvas);
 
-                // Generar QR con QRious usando nivel H (alta corrección de errores)
+                // Generar QR con QRious 
                 qrInstance = new QRious({
                     element: canvas,
                     value: vcard,
                     size: 300,
-                    level: 'H',
+                    level: 'L',
                     foreground: '#000000',
                     background: '#ffffff'
                 });
